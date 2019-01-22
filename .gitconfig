@@ -1,0 +1,55 @@
+[user]
+        email = riose3@livemail.uthscsa.edu 
+        name = Emily Rios
+[push]
+        default = matching
+[color]
+        ui = auto
+[alias]
+# CUSTOM GIT SHORTCUTS FOR TSCI 5050
+
+# This pulls in updates from the upstream course directory into your own branch
+# Example: 'git up'
+        up = !git fetch upstream && git merge upstream/master
+
+# This checks out a branch or commit, and should be followed by a value, for 
+# example 'git co master'
+        co = checkout
+
+# This checks the status of your local repository. It tells you which branch
+# you are currently in and shows you what tracked files have been modified 
+# as well as what untracked files exist. Example usage: 'git st'
+        st = status
+
+# This commits changes in the TRACKED files
+# Example 1 (commit all changes):
+#    git ci -a -m "This is my comment"
+#
+#
+# Example 2 (commit changes, if any, to file README.md):
+#    git ci README.md -m "This is my comment"
+#
+        ci = commit
+
+# There is no alias needed for git add, but here is how you use it:
+# (to start tracking a file you created named YOURNEWFILE.csv):
+#    git add YOURNEWFILE.csv
+# Note: you will still need to do 'git ci YOURNEWFILE.csv' afterward
+
+# This creates a new branch and immediately checks it out. For example if you
+# want to create a branch named 'integration': 'git br integration'
+# Note: your branch will not show up on 'the cloud' until you do this:
+#    git push origin integration
+        br = checkout -b
+
+# This merges changes from some other branch to your current branch. For
+# example if you are in 'master' and want to merge in changes from
+# 'integration': 'git mr integration'
+        mr = merge --no-ff
+
+# This is a fancy, colorful, yet compact listing of your git history.
+# Example: 'git lg'
+        lg = log --oneline --graph --color --all --decorate
+
+# This shows you the help text you are reading right now!
+        tsci5050 = !sed -e '1,/^\\[alias\\]/d' ~/.gitconfig
