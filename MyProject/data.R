@@ -32,7 +32,13 @@ if(file.exists(levels_map_file)){
   levels_map <- tread(levels_map_file,read_csv,na='')};
 
 #' Create copy of original dataset
-dat1 <- group_by(dat0,patient_num);
+if(pn %in% names(dat0)){
+  groupvar <- pn;
+}
+
+if(exists('groupvar') && groupvar %in% names(dat0)){
+  dat1 <- group_by(dat0,patient_num);
+} else dat1 <- dat0;
 #' 
 #' Bulk-transform the NA/non-NA columns to FALSE/TRUE ones
 #
@@ -98,7 +104,7 @@ c(-320,-241,-116,-15,1,46,89)
 #' reproducibly.
 tseed(project_seed);
 #' Randomly to training, testing, or validation sets
-if(pn %in% names(dat1)) pat_samples <- unique(dat1$patient_num) %>% 
+if(pn %in% names(dat1)) pat_samples <- unique(dat1[[pn]]) %>% 
     split(.,sample(c('train','test','val'),size=length(.),rep=T));
 
 #+ echo=F
