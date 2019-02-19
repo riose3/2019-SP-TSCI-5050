@@ -332,6 +332,13 @@ truthy.default <- function(xx,truewords=c('TRUE','true','Yes','T','Y','yes','y')
 truthy.data.frame <- function(xx,...) as.data.frame(lapply(xx,truthy,...));
 
 # table utilities --------------------------------------------------------------
+#' Sumarize a table column
+colinfo <- function(col){
+  list(class=class(col)[1]
+       ,isnum=is.numeric(col)
+       ,nmissing=sum(is.na(col))
+       ,fracmissing=mean(is.na(col)))}
+
 #' Returns a vector of column names that contain data elements of a particular type
 #' as specified by the user: "integer","POSIXct" "POSIXt", "numeric", "character", 
 #' "factor" and "logical". 

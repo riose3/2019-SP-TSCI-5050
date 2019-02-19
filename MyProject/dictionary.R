@@ -41,7 +41,13 @@ if(pn %in% names(dat0spec$cols)) dat0spec$cols[[pn]] <- col_number();
 #' ## Read the data 
 dat0 <- read_delim(inputdata,delim=file_delim,na=c('(null)','')
                    ,col_type=dat0spec);
+#' The `colnames` command is unusual in that is 
+#' can both output a result and be on the receiving
+#' end of a value assignment.
 colnames(dat0) <- tolower(colnames(dat0));
+#' Hint: if your data has no column names, here is
+#' how you can auto-generate them:
+# colnames(datX) <- make.names(seq_len(ncol(datX)))
 
 #+ echo=F
 # make data dictionary ---------------------------------------------------------
