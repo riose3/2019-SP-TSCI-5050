@@ -46,7 +46,7 @@ instrequire(
     # data manipulation & piping. 
     # 'tools' is used by trailR.R
     # 'LaF' is used for fast and powerful reading of text files.
-    ,'readr','dplyr','magrittr','tools','LaF','xlsx'
+    ,'readr','dplyr','magrittr','tools','LaF' #,'xlsx'
     # dummies breaks categoric variables into individual dummy variables
     ,'dummies'
     #,'lubridate'
@@ -71,6 +71,11 @@ instrequire(
 #enableJIT(3);
 #+ echo=F
 # config -----------------------------------------------------------------------
+
+#' ## Set variables that can get overridden by `config.R` if 
+#' applicable (to avoid error messages if you don't have them in
+#' your `config.R`)
+n_skip <- 0;
 #' ## Load local config file
 #' 
 source('./config.R');

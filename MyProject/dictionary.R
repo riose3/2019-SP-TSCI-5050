@@ -28,7 +28,9 @@ if(!exists('file_delim')) {
 }
 
 #' ## Initialize the column specification for parsing the input data
-dat0spec <- spec_delim(inputdata,na=c('(null)',''),guess_max=5000
+dat0spec <- spec_delim(inputdata,na=c('(null)','','.')
+                       ,guess_max=5000
+                       ,skip=n_skip
                        ,delim = file_delim);
 
 #' ## Optional: patient number
@@ -39,7 +41,9 @@ dat0spec <- spec_delim(inputdata,na=c('(null)',''),guess_max=5000
 if(pn %in% names(dat0spec$cols)) dat0spec$cols[[pn]] <- col_number();
 
 #' ## Read the data 
-dat0 <- read_delim(inputdata,delim=file_delim,na=c('(null)','')
+dat0 <- read_delim(inputdata,delim=file_delim
+                   ,na=c('(null)','','.')
+                   ,skip=n_skip
                    ,col_type=dat0spec);
 #' The `colnames` command is unusual in that is 
 #' can both output a result and be on the receiving
