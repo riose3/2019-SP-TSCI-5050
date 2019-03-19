@@ -16,6 +16,9 @@ tself(scriptname=.currentscript);
 #' Saving original file-list so we don't keep exporting functions and 
 #' environment variables to other scripts
 .origfiles <- ls();
+# read student pre-run script if it exists ----
+if('pre_dictionary.R' %in% list.files()) source('pre_dictionary.R');
+
 #+ echo=F
 # read dat0 --------------------------------------------------------------------
 #' If we don't know the field delimiter for sure, we will avoid making 
@@ -66,6 +69,9 @@ colnames(dat0) <- tolower(colnames(dat0));
 #' Since you're messing around with the raw data anyway, if there is anything 
 #' you will need later which does not depend on the processing steps in the
 #' `data.R` script, you might as well get it out of the way in this section
+
+# read student post-run script if it exists ----
+if('post_dictionary.R' %in% list.files()) source('post_dictionary.R');
 
 #+ echo=F
 # save out ---------------------------------------------------------------------

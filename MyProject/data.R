@@ -23,6 +23,10 @@ if(!file.exists(.depdata)) system(sprintf('R -e "source(\'%s\')"',.depends));
 #' Saving original file-list so we don't keep exporting functions and 
 #' environment variables to other scripts
 .origfiles <- ls();
+
+# read student pre-run script if it exists ----
+if('pre_data.R' %in% list.files()) source('pre_data.R');
+
 #' Create custom synonyms for `TRUE` if needed
 l_truthy_default <- eval(formals(truthy.default)$truewords);
 l_missing <- c(NA,'Unknown','unknown','UNKNOWN');
@@ -112,6 +116,9 @@ if(pn %in% names(dat1)) pat_samples <- unique(dat1[[pn]]) %>%
 #' ## Create a version of the dataset that only has each patient's 1st encounter
 #' 
 #' (if applicable)
+
+# read student post-run script if it exists ----
+if('post_data.R' %in% list.files()) source('post_data.R');
 
 #+ echo=F
 # save out ---------------------------------------------------------------------
