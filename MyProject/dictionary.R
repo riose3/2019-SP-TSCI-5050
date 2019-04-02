@@ -1,5 +1,5 @@
 #' ---
-#' title: "Kidney Cancer Data Dictionary Init"
+#' title: "Build Data Dictionary"
 #' author: 
 #' - "Alex F. Bokov^[UT Health, Department of Epidemiology and Biostatistics]"
 #' date: "09/14/2018"
@@ -44,10 +44,12 @@ dat0spec <- spec_delim(inputdata,na=c('(null)','','.')
 if(pn %in% names(dat0spec$cols)) dat0spec$cols[[pn]] <- col_number();
 
 #' ## Read the data 
-dat0 <- read_delim(inputdata,delim=file_delim
+dat0.old <- read_delim(inputdata,delim=file_delim
                    ,na=c('(null)','','.')
                    ,skip=n_skip
                    ,col_type=dat0spec);
+#' Test of generic read function which auto-guesses file formats:
+dat0 <- do.call(autoread,c(list(file=inputdata),file_args));
 #' The `colnames` command is unusual in that is 
 #' can both output a result and be on the receiving
 #' end of a value assignment.

@@ -46,7 +46,8 @@ instrequire(
     # data manipulation & piping. 
     # 'tools' is used by trailR.R
     # 'LaF' is used for fast and powerful reading of text files.
-    ,'readr','dplyr','magrittr','tools','LaF' #,'xlsx'
+    ,'readr','dplyr','magrittr','tools','LaF' ,'openxlsx'
+    ,'tibble','readxl','data.table'
     # dummies breaks categoric variables into individual dummy variables
     ,'dummies'
     #,'lubridate'
@@ -76,10 +77,13 @@ instrequire(
 #' applicable (to avoid error messages if you don't have them in
 #' your `config.R`)
 n_skip <- 0;
+file_args <- list(check.names=T,blank.lines.skip=T);
 #' ## Load local config file
 #' 
 source('./config.R');
-
+#' Arguments to any/all file reading expressions (in addition to whatever
+#' is already done in config.R)
+file_args$skip <- n_skip;
 #+ echo=F
 # vars -------------------------------------------------------------------------
 #' ## Set generic variables
