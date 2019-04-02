@@ -510,6 +510,15 @@ personalizeTemplate <- function(file,template='TEMPLATE.R'
                                 ,deps=c('dictionary.R'),packages=c()
                                 ,title='TITLE',author='AUTHOR'
                                 ,date=Sys.Date()){
-  out <- readLines(template);
-  browser();
+  out <- sprintf(readLines(template)
+                 ,title # The title that will appear in the header
+                 ,author # Author, ditto
+                 ,format(date,'%d/%m/%Y') # Date, ditto
+                 # packages (optional)
+                 ,paste('c(',paste0("'",packages,"'",collapse=','),')') 
+                 ,file # ...so the file knows it's own name!
+                 # dependencies on previously run files
+                 ,paste('c(',paste0("'",deps,"'",collapse=','),')')
+  );
+  write(out,file);
 }
