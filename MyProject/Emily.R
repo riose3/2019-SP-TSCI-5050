@@ -84,7 +84,13 @@ mainvars <- c(outcomevars, predictorvars);
 # one)
 dat1 <- dat0
 dat1$gender <- factor(dat0$gender,levels = 0:1,labels = c('Male','Female'));
+dat1$ethnicity <- factor(dat0$ethnicity,levels = 0:1,labels = c('Non-Hispanic','Hispanic'));
+dat1$race <- factor(dat0$race,levels = 0:3,labels = c('Caucasian','African-American','Asian','Other'));
+dat1$surgical.approach <- factor(dat0$surgical.approach,levels = 0:3,labels = c('Open','Robotic with Open','Total Robotic','Robotic Converted to Open'));
+dat1$type.of.diversion <- factor(dat0$type.of.diversion,levels = 0:2,labels = c('Ileal Conduit','Continent Cutaneous','Orthopic Neobladder'));
 ggpairs(dat1[,mainvars],mapping=aes(color=gender));
+ggpairs(dat1[,mainvars],mapping=aes(color=ethnicity));
+ggpairs(dat1[,mainvars],mapping=aes(color=type.of.diversion));
 #' ### Cohort Characterization (step 10)
 #' 
 #' To explore possible covariates
