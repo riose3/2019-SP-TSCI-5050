@@ -1,2 +1,2 @@
-personalizeTemplate('~/Desktop/hispanic%2520discrepancy%2520study.fields_Final.csv',title = 'UD Disparities',author = 'EMILY RIOS'
-                    + 	,packages=c('GGally','ggplot2','tableone'));
+personalizeTemplate('New_Script',title = 'UD Disparities', author 'EMILY_RIOS',packages=c('GGally','ggplot2','tableone'));
+
