@@ -10,7 +10,41 @@
 #' Keep this script minimalistic and *no number crunching here*
 #' 
 #+ echo=F
-# local_functionas -------------------------------------------------------------
+# orient_paths ----
+#' ## Figure out where we are and set the upstream repository
+#' 
+#' Upstream repo
+options('git.upstream','git@github.com:bokov/2019-SP-TSCI-5050');
+#' get current working directory
+cwd <- getwd(); cwd;
+#' If `global.R` isn't found, try to find it
+if(!file.exists('functions.R')){
+  cwd <- getwd(); start <- normalizePath('..');
+  .corefiles <- '(functions|global|dictionary|example_config).R';
+  .candidatedirs <- unique(dirname(file.path(normalizePath('..')
+                                             ,list.files(normalizePath('..')
+                                                         ,pattern=.corefiles
+                                                         ,recursive=T))));
+  if(length(.candidatedirs)==0) stop('You are missing required files. '
+                                     ,'If this is part of a course, please ask '
+                                     ,'your instructor for help. Either way, '
+                                     ,'you might need to clone a fresh copy of '
+                                     ,'this project.');
+  if(length(.candidatedirs)==1){
+    message('You are not in the correct directory. Here is/are one/s that '
+            ,'might be correct. Please type in the directory to which you wish '
+            ,'to switch to or hit [enter] to accept the first item on this '
+            ,'list:');
+    cat(paste(' ',.candidatedirs),sep='\n');
+    .response <- readline('Choose directory: ');
+    if(.response=='') setwd(.candidatedirs[1]) else {
+      if(!dir.exists(.response)) stop('The directory you chose, '
+                                      ,.response,' does not exist. Try again.');
+      setwd(.response)};
+  }
+}
+#+ echo=F
+# local_functionas ----
 #' ## Load some local functions
 #+ warning=FALSE, message=FALSE
 source('./functions.R');
@@ -71,7 +105,7 @@ instrequire(
 #' (not needed unless you're running some very slow operations)
 #enableJIT(3);
 #+ echo=F
-# config -----------------------------------------------------------------------
+# config ----
 
 #' ## Set variables that can get overridden by `config.R` if 
 #' applicable (to avoid error messages if you don't have them in
@@ -80,6 +114,12 @@ n_skip <- 0;
 file_args <- list(check.names=T,blank.lines.skip=T);
 #' ## Load local config file
 #' 
+if(!file.exists('config.R')){
+  stop('Please copy example_config.R to config.R, modify it so that the '
+       ,'\'inputdata\' variable is the full path to your data file on your '
+       ,'local computer, back up your config.R to some local location outside '
+       ,'this repository, and then try running this script again.')};
+
 source('./config.R');
 #' Arguments to any/all file reading expressions (in addition to whatever
 #' is already done in config.R)

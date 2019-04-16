@@ -118,6 +118,15 @@ fullargs <- function(syspar=sys.parent(),env=parent.frame(2L),expand.dots=TRUE){
 
 #' Take a set of objects coercible to matrices and perform sprintf on them while
 #' preserving their dimensions (obtained from the first argument of ...)
+
+# figure out how the current OS represents the top of its file system
+systemRootDir <- function(){
+  dir <- dirname(normalizePath('.'));
+  newdir <- dirname(dir);
+  while(dir!=newdir){dir<-newdir; newdir <- dirname(newdir)}
+  return(newdir);
+}
+
 mprintf <- function(fmt,...,flattenmethod=1){
   dots <- list(...);
   out<-dots[[1]];
@@ -140,8 +149,180 @@ mprintf <- function(fmt,...,flattenmethod=1){
   out;
   }
 
+# extract the error message of the argument
+getTryMsg <- function(xx,ifNotErr=xx){
+  if(is(xx,'try-error')) return(attr(bla,'condition')$message);
+  return(ifNotErr);}
 
-# renaming and remapping  ------------------------------------------------------
+# to be used inside a function to get a list of unevaluated calls 
+# from all the ... args
+getParentDots <- function(xx,call=sys.call(-1),fun=sys.function(-1)){
+  out <- list();
+  for(ii in setdiff(names(call),c(names(formals(fun)),''))){
+    out[[ii]] <- call[[ii]]};
+  out;
+}
+
+systemwrapper <- function(cmd='',...,VERBOSE=getOption('sysverbose',T)
+                          ,CHECKFILES=c('files')){
+  args <- list(...); sysargs <- list();
+  # separate out the args intended for system
+  for(ii in intersect(names(args),names(formals(system)))){
+    sysargs[[ii]] <- args[[ii]]; args[[ii]] <- NULL;};
+  # check to make sure all arguments listed in checkfiles contain only files
+  # that exist
+  for(ii in intersect(CHECKFILES,names(args))){
+    if(!all(.exist <- file.exists(args[[ii]]))){
+      stop('The following files cannot be found:\n'
+           ,paste(args[[ii]][!.exist],collapse=', '))}};
+  for(xx in args) cmd <- paste(cmd,paste(xx,collapse=' '));
+  if(VERBOSE) message('Executing the following command:\n',cmd);
+  return(do.call(system,c(command=cmd,sysargs)));
+}
+# git ----
+git_checkout <- function(which=getOption('git.workingbranch','master'),...){
+  systemwrapper('git checkout',which,...)};
+gco <- git_checkout;
+
+git_commit <- function(files='-a',comment
+                       ,autopush=getOption('git.autopush',T),...){
+  .changed<-git_status(VERBOSE=F,intern=T);
+  filenames <- if(!missing(files)){
+    paste0(paste(files,collapse=','),': ')} else 'multi: ';
+  comment <- paste0('"',filenames,comment,'"');
+  systemwrapper('git commit',files,'-m',comment,...);
+  if(autopush) git_push();}
+gci <- git_commit;
+
+# List the files in the repo having a particular status
+git_diff_filter <- function(xx) {
+  system(paste('git diff --name-only --diff-filter',xx),intern=T)};
+
+git_status <- function(print=T
+                       ,diff_filters=list(Added='A',Copied='C',Deleted='D'
+                                          ,Modified='M',Renamed='R'
+                                          ,ChangedType='T',Unmerged='U'
+                                          ,Unknown='X',Broken='B')
+                       ,...){
+  branch <- system('git rev-parse --abbrev-ref HEAD',intern=T);
+  tracking <- system('git rev-parse --abbrev-ref --symbolic-full-name @{u}'
+                     ,intern=T);
+  commits <- if(length(tracking)==0) character(0) else {
+    system(paste('git log',paste0(tracking,'..',branch),'--oneline')
+           ,intern=T)};
+  diffs <- lapply(diff_filters,git_diff_filter);
+  if(print){
+    message('Branch: ',branch);
+    if(length(commits)>0) {
+      message('Ahead of ',tracking,' by ',length(commits),' commit'
+              ,if(length(commits)>1) 's.' else '.')} else {
+                if(!any(sapply(diffs,length)>0)){
+                  message('All local changes have already been pushed')}};
+    # TODO: check for un-pulled upstream changes
+    for(ii in names(diffs)) if(length(diffs[[ii]])>0){
+      message(ii,':'); cat(paste(' ',diffs[[ii]]),sep='\n');}
+    }
+  invisible(list(branch=branch,tracking=tracking,commits=commits
+                 ,diffs=diffs));
+  }
+gst <- git_status;
+
+git_lsfiles <- function(...) {systemwrapper('git ls-files',...)};
+
+git_other <- function(...){systemwrapper('git',...)};
+git_ <- git_other;
+
+git_add <- function(files,...){
+  systemwrapper('git add',files=files,...)};
+gadd <- git_add;
+
+git_rename <- function(from,to,...){systemwrapper('git rename',from,to,...)};
+
+git_move <- function(from,to,...) {systemwrapper('git mv',from,to,...)};
+
+git_push <- function(...) {systemwrapper('git push',...)};
+gp <- git_push;
+
+git_newbranch <- function(branch,pushorigin=F,...){
+  systemwrapper('git checkout -b',branch,...);
+  if(pushorigin) systemwrapper('git push origin',branch);
+}
+gbr <- git_newbranch;
+
+# TODO: detect conflicts in advance and ask what to do
+git_merge <- function(which,fastfwd=getOption('git.fastfwd',F)
+                      ,verbose=getOption('git.verbose',T),...){
+  cmd <- paste('git merge',if(!fastfwd) '--no-ff' else '',...);
+  if(verbose) message('Executing the following command:\n',cmd);
+  system(cmd);}
+gmr <- git_merge;
+
+git_autoconf <- function(upstream=getOption('git.upstream'),...){
+  # should only be run in an interactive context
+  if(!'upstream' %in% system('git remote',intern=T) && !is.null(upstream)){
+    systemwrapper('git remote add upstream',upstream);
+  }
+  # Set username and email
+  if(length(.username <- system('git config user.name',intern=T))==0){
+    message("Please type in your name as you want it to appear in git logs:");
+    .username <- paste0('"',readline(),'"');
+    systemwrapper('git config --global user.name',.username)};
+  if(length(.useremail <- system('git config user.email',intern=T))==0){
+    message("Please type in your email as you want it to appear in git logs:");
+    .useremail <- paste0('"',readline(),'"');
+    systemwrapper('git config --global user.email',.useremail)};
+}
+
+# By default incorporates upstream changes if they don't conflict with local 
+# changes but overwrites 
+# set mergestrategy to 'ours' to resolve conflicts in favor of local changes
+# Or set it to '' to do whatever the default action is.
+# The ... args get passed to the merge command
+git_getupstream <- function(mergestrategy='theirs'
+                            ,message='Merge with upstream'
+                            ,fastfwd=getOption('git.fastfwd',F)
+                            ,upstrmbranch=getOption('git.upstrmbranch','master')
+                            ,localbranch=getOption('git.workingbranch','master')
+                            ,...){
+  git_autoconf();
+  systemwrapper('git fetch upstream');
+  git_checkout(which = localbranch);
+  upstreamaddress <- paste0('upstream/',upstrmbranch);
+  systemwrapper('git merge',upstreamaddress
+                ,if(!fastfwd) '--no-ff' else ''
+                ,if(mergestrategy!='') paste0('-X',mergestrategy) else ''
+                ,'-m',paste0('"',message,'"'),...);
+  result <- system('git diff --name-only --diff-filter=U',intern=T);
+  if(length(result)>0){
+    warning('Uh oh. There seem to be merge conflicts in the following files:\n'
+            ,paste(result,collapse=', '),'\nAborting merge.\n');
+    systemwrapper('git merge --abort')
+    stop('The merge you attempted to do will need to be sorted out manually outside of R. If you are doing this as part of a class, please ask your instructor for help.')};
+}
+gup <- gitup <- git_getupstream;
+
+
+#' Title: Add a pattern to a .gitignore file
+#'
+#' @param patterns A character vector of patterns to ignore. Required.
+#'                 Always appended. If you need to un-ignore something
+#'                 you will have to edit .gitignore manually.
+#' @param ignorepath Path to .gitignore (you can have multiple ones)
+#'                   current directory by default.
+#' @param preamble What to put in the line/s before a set of ignore 
+#'                 patterns. Empty line by default, set to NULL if you
+#'                 want to not skip a line.
+#'
+#' @return NULL
+#' @export
+#'
+#' @examples git_ignore(c('*.csv','*.tsv'))
+git_ignore <- function(patterns,ignorepath='.',preamble='') {
+  write(c(preamble,patterns),file.path(ignorepath,'.gitignore'),append=T)};
+
+# TODO: git nagger
+
+# renaming and remapping  ----
 #' A function to re-order and/or rename the levels of a factor or 
 #' vector with optional cleanup.
 #'
@@ -332,9 +513,29 @@ truthy.default <- function(xx,truewords=c('TRUE','true','Yes','T','Y','yes','y')
 truthy.data.frame <- function(xx,...) as.data.frame(lapply(xx,truthy,...));
 
 # table utilities -----------------------------------
+t_autoread <- function(file,...){
+  # make sure prerequisite function exists
+  if(!exists('tread')) {
+    instrequire('devtools');
+    .result <- try({
+      devtools::install_github('bokov/trailR',ref='integration'); 
+      library(trailR);});
+    if(is(.result,'try-error')) return(getTryMsg(.result));
+  }
+  do.call(tread,c(list(file,readfun=autoread),list(...)));
+}
+
 #' Autoguessing function for reading most common data formats
-autoread <- function(file,na=c('','.','(null)','NULL','NA'),...){
+autoread <- function(file,na=c('','.','(null)','NULL','NA')
+                     # change this to identity to do nothing to names
+                     ,fixnames=function(xx) {
+                       setNames(xx,tolower(make.names(names(xx))))}
+                     ,file_args=list(),...){
   args <- list(...);
+  # allow file_args to be overridden by ... args, while preserving
+  # order of ... 
+  for(ii in intersect(names(args),names(file_args))) file_args[[ii]] <- NULL;
+  args <- c(file_args,args);
   # check for text formats
   if(nrow(enc<-guess_encoding(file))>0){
     # try to read as a delimited file via fread
@@ -342,17 +543,21 @@ autoread <- function(file,na=c('','.','(null)','NULL','NA'),...){
     txargs$na.strings <- na;
     out <- try(as_tibble(do.call(fread,c(list(input=file),txargs)))
                ,silent = T);
-    if(!is(out,'try-error')) return(out);
+    if(!is(out,'try-error')) return(fixnames(out));
     txargs <- args[intersect(names(args),names(formals(read_delim)))];
     txargs$na <- na;
     txargs$delim <- '\t';
-    out <- try(as_tibble(do.call(readr::read_delim,c(list(file=file),txargs)))
-               ,silent=T);
-    if(!is(out,'try-error') && ncol(out)>1) return(out) else out_tab <- out;
+    suppressMessages(out <- try({
+      problems<-problems(oo<-do.call(readr::read_delim,c(list(file=file)
+                                                         ,txargs)));
+      oo},silent=T));
+    if(!is(out,'try-error') && ncol(out)>1) return(fixnames(out)) else out_tab <- out;
     txargs$delim <- ',';
-    out <- try(as_tibble(do.call(readr::read_delim,c(list(file=file),txargs)))
-               ,silent=T);
-    if(!is(out,'try-error')) return(out);
+    suppressMessages(out <- try({
+      problems<-problems(oo<-do.call(readr::read_delim,c(list(file=file)
+                                                         ,txargs)));
+      oo},silent=T));
+    if(!is(out,'try-error')) return(fixnames(out));
     cat('\nGuessed encoding:\n');print(enc);
     stop(attr(out,'condition')$message);
   }
@@ -366,7 +571,7 @@ autoread <- function(file,na=c('','.','(null)','NULL','NA'),...){
       "\nMultiple sheets found:\n",paste(sheets,collapse=', ')
       ,"\nReading in the first sheet. If you want a different one"
       ,"\nplease specify a 'sheet' argument")
-    return(do.call(read_xlsx,c(list(path=file),xlargs)));}
+    return(fixnames(do.call(read_xlsx,c(list(path=file),xlargs))));}
   # xls
   sheets <- try(.Call('readxl_xls_sheets',PACKAGE='readxl',file),silent=F);
   if(!is(sheets,'try-error')){
@@ -374,7 +579,7 @@ autoread <- function(file,na=c('','.','(null)','NULL','NA'),...){
       "Multiple sheets found: ",paste(sheets,collapse=', ')
       ,"\nReading in the first sheet. If you want a different one"
       ,"\nplease specify a 'sheet' argument")
-    return(do.call(read_xls,c(list(path=file),xlargs)));}
+    return(fixnames(do.call(read_xls,c(list(path=file),xlargs))));}
   # need to unzip the file?
   out <- try(unzip(file,list=T));
   if(!is(out,'try-error')){
@@ -392,11 +597,47 @@ autoread <- function(file,na=c('','.','(null)','NULL','NA'),...){
   }
 
 #' Sumarize a table column
-colinfo <- function(col){
-  list(class=class(col)[1]
-       ,isnum=is.numeric(col)
-       ,nmissing=sum(is.na(col))
-       ,fracmissing=mean(is.na(col)))}
+colinfo <- function(col,custom_stats=alist(),...){
+  nn <- length(col);
+  nona <- na.omit(col);
+  isna <- is.na(col);
+  coltab <- table(nona);
+  out <- list(class=paste0(class(col),collapse=':')
+              ,uniquevals=length(coltab)
+              ,isnum=is.numeric(col)
+              ,frc_int=if(is.numeric(nona)) mean(nona%%1==0) else 0
+              ,n_nonmissing=nn-sum(isna)
+              ,n_missing=sum(isna)
+              ,frc_missing=mean(isna)
+              ,n_nonrepeat=sum(coltab==1)
+              ,frc_nonrepeat=sum(coltab==1)/length(nona)
+              ,frc_max=paste0(sort(coltab,decreasing = T)[1:3],collapse=':')
+  );
+  for(ii in names(custom_stats)){
+    out[[ii]] <- eval(custom_stats[[ii]],envir = out)};
+  dots <- getParentDots();
+  for(ii in names(dots)) out[[ii]] <- eval(dots[[ii]],envir=out);
+  out;
+  }
+
+tblinfo <- function(dat,custom_stats=alist()
+                    # some handy column groupers
+                    ,info_cols=alist(
+                       c_empty=frc_missing==1,c_uninformative=n_nonmissing<2
+                      ,c_ordinal=uniquevals<10&isnum
+                      ,c_tm=uniquevals==1&n_missing>0
+                      ,c_tf=uniquevals==2,c_numeric=isnum&!c_ordinal
+                      ,c_factor=uniquevals<20&!isnum
+                      ,c_complex=!(c_ordinal|c_tm|c_tf|c_numeric|c_factor)
+                    ),...){
+  out <- bind_rows(sapply(dat,colinfo,custom_stats=custom_stats,simplify=F)
+                   ,.id='column');
+  for(ii in names(info_cols)) out[[ii]] <- eval(info_cols[[ii]],envir=out);
+  dots <- getParentDots();
+  for(ii in names(dots)) out[[ii]] <- eval(dots[[ii]],envir=out);
+  class(out)<-c('dtdict',class(out));
+  return(out);
+}
 
 #' Returns a vector of column names that contain data elements of a particular type
 #' as specified by the user: "integer","POSIXct" "POSIXt", "numeric", "character", 
@@ -506,10 +747,13 @@ fs <- function(str,text=str,url=paste0('#',gsub('[^_a-z0-9]','-',tolower(str)))
 }
 
 # Project Utilities ----
-personalizeTemplate <- function(file,template='TEMPLATE.R'
+personalizeTemplate <- function(file,title='TITLE',author='AUTHOR'
                                 ,deps=c('dictionary.R'),packages=c()
-                                ,title='TITLE',author='AUTHOR'
-                                ,date=Sys.Date()){
+                                ,date=Sys.Date(),template='TEMPLATE.R'){
+  if(!all(deps %in% (.files <- list.files()))){
+    stop(
+      "Of the files you specified in the 'deps' argument the following are missing:\n"
+      ,paste0(setdiff(deps,.files),collapse=', '))};
   out <- sprintf(readLines(template)
                  ,title # The title that will appear in the header
                  ,author # Author, ditto
