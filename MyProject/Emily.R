@@ -67,21 +67,24 @@ panderOptions('table.continues',.oldopt00);
 #' Predictors
 # Uncomment the below line after putting in the actual predictor column names
 # from your dat0
-#predictorvars <- c('FOO','BAR','BAZ','BAT');
+predictorvars <- c('race','ethnicity','gender');
 #' Outcomes
 # Uncomment the below line after putting in the actual outcome column names
 # from your dat0
-#outcomevars <- c('BAN','BAX');
+outcomevars <- c('surgical.approach','type.of.diversion');
 #' All analysis-ready variables
 # Uncomment the below line after predictorvars and outcomevars already exist
-#mainvars <- c(outcomevars, predictorvars);
+mainvars <- c(outcomevars, predictorvars);
 #' ### Scatterplot matrix (step 10)
 #' 
 #' To explore pairwise relationships between all variables of interest.
+#+ ggpairs_plot
 # Uncomment the below after mainvars already exists and you have chosen a 
 # discrete variable to take the place of VAR1 (note that you don't quote that
 # one)
-#ggpairs(dat0[,mainvars],mapping=aes(color=VAR1));
+dat1 <- dat0
+dat1$gender <- factor(dat0$gender,levels = 0:1,labels = c('Male','Female'));
+ggpairs(dat1[,mainvars],mapping=aes(color=gender));
 #' ### Cohort Characterization (step 10)
 #' 
 #' To explore possible covariates
